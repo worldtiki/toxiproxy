@@ -43,6 +43,7 @@ development and CI environment.
 ## Clients
 
 * [toxiproxy-ruby](https://github.com/Shopify/toxiproxy-ruby)
+* [toxiproxy-go](https://github.com/Shopify/toxiproxy/blob/master/client/client.go) WIP, doesn't support toxics, etc.
 
 [toxiproxy-ruby]: https://github.com/Shopify/toxiproxy-ruby
 
