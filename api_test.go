@@ -124,6 +124,7 @@ func TestCreateProxyWithSave(t *testing.T) {
 		testProxy.Listen = "localhost:3310"
 		testProxy.Upstream = "localhost:20001"
 		testProxy.Enabled = true
+		testProxy.ClientReset = true
 
 		err := testProxy.Save()
 		if err != nil {
@@ -135,8 +136,8 @@ func TestCreateProxyWithSave(t *testing.T) {
 			t.Fatal("Unable to retriecve proxy:", err)
 		}
 
-		if proxy.Name != "mysql_master" || proxy.Listen != "127.0.0.1:3310" || proxy.Upstream != "localhost:20001" || !proxy.Enabled {
-			t.Fatalf("Unexpected proxy metadata: %s, %s, %s, %v", proxy.Name, proxy.Listen, proxy.Upstream, proxy.Enabled)
+		if proxy.Name != "mysql_master" || proxy.Listen != "127.0.0.1:3310" || proxy.Upstream != "localhost:20001" || !proxy.Enabled || !proxy.ClientReset {
+			t.Fatalf("Unexpected proxy metadata: %s, %s, %s, %v, %v", proxy.Name, proxy.Listen, proxy.Upstream, proxy.Enabled, proxy.ClientReset)
 		}
 
 		AssertProxyUp(t, proxy.Listen, true)

@@ -383,6 +383,7 @@ Toxiproxy listens for HTTP on port **8474**.
  - `listen`: listen address (string)
  - `upstream`: proxy upstream address (string)
  - `enabled`: true/false (defaults to true on creation)
+ - `clientReset`: true/false (defaults to false on creation)
 
 To change a proxy's name, it must be deleted and recreated.
 
@@ -393,6 +394,9 @@ in the response will be updated with the actual port.
 
 If you change `enabled` to `false`, it will take down the proxy. You can switch it
 back to `true` to reenable it.
+
+The `clientReset` field determines if a TCP reset will be sent to the client
+when a proxy is disabled or deleted.
 
 #### Toxic fields:
 

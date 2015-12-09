@@ -14,6 +14,7 @@
 * Make `ChanReader` in the `stream` package interruptible #77
 * Define proxy buffer sizes per-toxic (Fixes #72)
 * Fix slicer toxic testing race condition #71
+* Add `clientReset` proxy field
 
 # 1.2.1
 

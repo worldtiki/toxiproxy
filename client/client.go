@@ -22,10 +22,11 @@ type Toxics map[string]Toxic
 
 // Proxy represents a Proxy.
 type Proxy struct {
-	Name     string `json:"name"`     // The name of the proxy
-	Listen   string `json:"listen"`   // The address the proxy listens on
-	Upstream string `json:"upstream"` // The upstream address to proxy to
-	Enabled  bool   `json:"enabled"`  // Whether the proxy is enabled
+	Name        string `json:"name"`        // The name of the proxy
+	Listen      string `json:"listen"`      // The address the proxy listens on
+	Upstream    string `json:"upstream"`    // The upstream address to proxy to
+	Enabled     bool   `json:"enabled"`     // Whether the proxy is enabled
+	ClientReset bool   `json:"clientReset"` // Whether we send a client TCP RST on disable/delete
 
 	ActiveToxics Toxics `json:"toxics"` // The toxics active on this proxy
 
@@ -80,11 +81,12 @@ func (client *Client) NewProxy() *Proxy {
 // This is an alias for `NewProxy()` + `proxy.Save()`
 func (client *Client) CreateProxy(name, listen, upstream string) (*Proxy, error) {
 	proxy := &Proxy{
-		Name:     name,
-		Listen:   listen,
-		Upstream: upstream,
-		Enabled:  true,
-		client:   client,
+		Name:        name,
+		Listen:      listen,
+		Upstream:    upstream,
+		Enabled:     true,
+		ClientReset: false,
+		client:      client,
 	}
 
 	err := proxy.Save()

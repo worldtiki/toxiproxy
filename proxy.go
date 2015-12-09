@@ -20,10 +20,11 @@ import (
 type Proxy struct {
 	sync.Mutex
 
-	Name     string `json:"name"`
-	Listen   string `json:"listen"`
-	Upstream string `json:"upstream"`
-	Enabled  bool   `json:"enabled"`
+	Name        string `json:"name"`
+	Listen      string `json:"listen"`
+	Upstream    string `json:"upstream"`
+	Enabled     bool   `json:"enabled"`
+	ClientReset bool   `json:"clientReset"`
 
 	started chan error
 
@@ -33,7 +34,7 @@ type Proxy struct {
 }
 
 type ConnectionList struct {
-	list map[string]net.Conn
+	list map[string]*net.TCPConn
 	lock sync.Mutex
 }
 
@@ -50,7 +51,7 @@ var ErrProxyAlreadyStarted = errors.New("Proxy already started")
 func NewProxy() *Proxy {
 	proxy := &Proxy{
 		started:     make(chan error),
-		connections: ConnectionList{list: make(map[string]net.Conn)},
+		connections: ConnectionList{list: make(map[string]*net.TCPConn)},
 	}
 	proxy.Toxics = NewToxicCollection(proxy)
 	return proxy
@@ -92,7 +93,20 @@ func (proxy *Proxy) Stop() {
 // server runs the Proxy server, accepting new clients and creating Links to
 // connect them to upstreams.
 func (proxy *Proxy) server() {
-	ln, err := net.Listen("tcp", proxy.Listen)
+	var err error
+	var listenAddr, upstreamAddr *net.TCPAddr
+
+	if listenAddr, err = net.ResolveTCPAddr("tcp", proxy.Listen); err != nil {
+		proxy.started <- err
+		return
+	}
+
+	if upstreamAddr, err = net.ResolveTCPAddr("tcp", proxy.Upstream); err != nil {
+		proxy.started <- err
+		return
+	}
+
+	ln, err := net.ListenTCP("tcp", listenAddr)
 	if err != nil {
 		proxy.started <- err
 		return
@@ -133,7 +147,7 @@ func (proxy *Proxy) server() {
 	}()
 
 	for {
-		client, err := ln.Accept()
+		client, err := ln.AcceptTCP()
 		if err != nil {
 			// This is to confirm we're being shut down in a legit way. Unfortunately,
 			// Go doesn't export the error when it's closed from Close() so we have to
@@ -159,7 +173,7 @@ func (proxy *Proxy) server() {
 			"upstream": proxy.Upstream,
 		}).Info("Accepted client")
 
-		upstream, err := net.Dial("tcp", proxy.Upstream)
+		upstream, err := net.DialTCP("tcp", nil, upstreamAddr)
 		if err != nil {
 			logrus.WithFields(logrus.Fields{
 				"name":     proxy.Name,
@@ -214,6 +228,11 @@ func stop(proxy *Proxy) {
 	proxy.connections.Lock()
 	defer proxy.connections.Unlock()
 	for _, conn := range proxy.connections.list {
+		if proxy.ClientReset {
+			// Setting SO_LINGER to 0 will force the connection to close immediately
+			// and send a RST to the client: http://stackoverflow.com/a/6440364
+			conn.SetLinger(0)
+		}
 		conn.Close()
 	}
 

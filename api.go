@@ -92,7 +92,7 @@ func (server *ApiServer) ResetState(response http.ResponseWriter, request *http.
 
 func (server *ApiServer) ProxyCreate(response http.ResponseWriter, request *http.Request) {
 	// Default fields to enable the proxy right away
-	input := Proxy{Enabled: true}
+	input := Proxy{Enabled: true, ClientReset: false}
 	err := json.NewDecoder(request.Body).Decode(&input)
 	if apiError(response, joinError(err, ErrBadRequestBody)) {
 		return
@@ -111,6 +111,7 @@ func (server *ApiServer) ProxyCreate(response http.ResponseWriter, request *http
 	proxy.Name = input.Name
 	proxy.Listen = input.Listen
 	proxy.Upstream = input.Upstream
+	proxy.ClientReset = input.ClientReset
 
 	err = server.Collection.Add(proxy, input.Enabled)
 	if apiError(response, err) {
@@ -159,7 +160,7 @@ func (server *ApiServer) ProxyUpdate(response http.ResponseWriter, request *http
 	}
 
 	// Default fields are the same as existing proxy
-	input := Proxy{Listen: proxy.Listen, Upstream: proxy.Upstream, Enabled: proxy.Enabled}
+	input := Proxy{Listen: proxy.Listen, Upstream: proxy.Upstream, Enabled: proxy.Enabled, ClientReset: proxy.ClientReset}
 	err = json.NewDecoder(request.Body).Decode(&input)
 	if apiError(response, joinError(err, ErrBadRequestBody)) {
 		return

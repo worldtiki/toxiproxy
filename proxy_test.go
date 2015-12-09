@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -28,7 +30,7 @@ func NewTestProxy(name, upstream string) *toxiproxy.Proxy {
 	return proxy
 }
 
-func WithTCPServer(t *testing.T, f func(string, chan []byte)) {
+func WithTCPServer(t *testing.T, f func(string, chan []byte, <-chan error)) {
 	ln, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
 		t.Fatal("Failed to create TCP server", err)
@@ -37,6 +39,7 @@ func WithTCPServer(t *testing.T, f func(string, chan []byte)) {
 	defer ln.Close()
 
 	response := make(chan []byte, 1)
+	errs := make(chan error)
 	tomb := tomb.Tomb{}
 
 	go func() {
@@ -55,13 +58,13 @@ func WithTCPServer(t *testing.T, f func(string, chan []byte)) {
 
 		val, err := ioutil.ReadAll(src)
 		if err != nil {
-			t.Fatal("Failed to read from client")
+			errs <- err
+		} else {
+			response <- val
 		}
-
-		response <- val
 	}()
 
-	f(ln.Addr().String(), response)
+	f(ln.Addr().String(), response, errs)
 
 	tomb.Killf("Function body finished")
 	ln.Close()
@@ -71,7 +74,7 @@ func WithTCPServer(t *testing.T, f func(string, chan []byte)) {
 }
 
 func TestSimpleServer(t *testing.T) {
-	WithTCPServer(t, func(addr string, response chan []byte) {
+	WithTCPServer(t, func(addr string, response chan []byte, _ <-chan error) {
 		conn, err := net.Dial("tcp", addr)
 		if err != nil {
 			t.Error("Unable to dial TCP server", err)
@@ -97,7 +100,7 @@ func TestSimpleServer(t *testing.T) {
 }
 
 func WithTCPProxy(t *testing.T, f func(proxy net.Conn, response chan []byte, proxyServer *toxiproxy.Proxy)) {
-	WithTCPServer(t, func(upstream string, response chan []byte) {
+	WithTCPServer(t, func(upstream string, response chan []byte, _ <-chan error) {
 		proxy := NewTestProxy("test", upstream)
 		proxy.Start()
 
@@ -216,7 +219,7 @@ func TestStartTwoProxiesOnSameAddress(t *testing.T) {
 }
 
 func TestStopProxyBeforeStarting(t *testing.T) {
-	WithTCPServer(t, func(upstream string, response chan []byte) {
+	WithTCPServer(t, func(upstream string, response chan []byte, _ <-chan error) {
 		proxy := NewTestProxy("test", upstream)
 		AssertProxyUp(t, proxy.Listen, false)
 
@@ -238,7 +241,7 @@ func TestStopProxyBeforeStarting(t *testing.T) {
 }
 
 func TestProxyUpdate(t *testing.T) {
-	WithTCPServer(t, func(upstream string, response chan []byte) {
+	WithTCPServer(t, func(upstream string, response chan []byte, _ <-chan error) {
 		proxy := NewTestProxy("test", upstream)
 		err := proxy.Start()
 		if err != nil {
@@ -275,7 +278,7 @@ func TestProxyUpdate(t *testing.T) {
 }
 
 func TestRestartFailedToStartProxy(t *testing.T) {
-	WithTCPServer(t, func(upstream string, response chan []byte) {
+	WithTCPServer(t, func(upstream string, response chan []byte, _ <-chan error) {
 		proxy := NewTestProxy("test", upstream)
 		conflict := NewTestProxy("test2", upstream)
 
@@ -302,6 +305,38 @@ func TestRestartFailedToStartProxy(t *testing.T) {
 
 		proxy.Stop()
 		AssertProxyUp(t, proxy.Listen, false)
+	})
+}
+
+func TestCloseAndResetClient(t *testing.T) {
+	WithTCPServer(t, func(upstream string, response chan []byte, errs <-chan error) {
+		proxy := NewTestProxy("test", upstream)
+		proxy.ClientReset = true
+		proxy.Start()
+
+		AssertProxyUp(t, proxy.Listen, true)
+		tomb := tomb.Tomb{}
+
+		go func() {
+			defer tomb.Done()
+
+			timer := time.NewTimer(1 * time.Second)
+			select {
+			case err := <-errs:
+				operr, ok := err.(*net.OpError)
+				if !ok {
+					t.Errorf("Expected %v to be of type net.OpError", err)
+				}
+				if !strings.Contains(operr.Err.Error(), syscall.ECONNRESET.Error()) {
+					t.Errorf("\"%s\" does not contain \"%s\"", operr.Err.Error(), syscall.ECONNRESET.Error())
+				}
+			case <-timer.C:
+				t.Fatal("Timed out waiting for error")
+			}
+		}()
+
+		proxy.Stop()
+		tomb.Wait()
 	})
 }
 
