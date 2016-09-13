@@ -66,6 +66,7 @@ type ToxicStub struct {
 	Input     <-chan *stream.StreamChunk
 	Output    chan<- *stream.StreamChunk
 	State     interface{}
+	Toxicity  float32
 	Interrupt chan struct{}
 	running   chan struct{}
 	closed    chan struct{}
@@ -77,6 +78,7 @@ func NewToxicStub(input <-chan *stream.StreamChunk, output chan<- *stream.Stream
 		closed:    make(chan struct{}),
 		Input:     input,
 		Output:    output,
+		Toxicity:  rand.Float32(),
 	}
 }
 
@@ -85,8 +87,8 @@ func NewToxicStub(input <-chan *stream.StreamChunk, output chan<- *stream.Stream
 func (s *ToxicStub) Run(toxic *ToxicWrapper) {
 	s.running = make(chan struct{})
 	defer close(s.running)
-	// TODO: How will toxicity work with bidirectional toxics?
-	if rand.Float32() < toxic.Toxicity {
+
+	if s.Toxicity < toxic.Toxicity {
 		if toxic.PairedToxic == nil || toxic.Direction == stream.Downstream {
 			toxic.Pipe(s)
 		} else {
