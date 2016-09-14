@@ -1,3 +1,7 @@
+# 2.2.0 (Unreleased)
+
+* Add bidirectional toxics #132
+
 # 2.1.0
 
 * Add -config server option to populate on startup #154
