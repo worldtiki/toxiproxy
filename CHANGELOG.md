@@ -1,5 +1,6 @@
 # 2.1.0 (Unreleased)
 
+* Add bidirectional toxics #132
 * Add `/populate` endpoint to server #111
 * Change error responses from `title` to `error`
 * Allow hostname to be specified in CLI #129
