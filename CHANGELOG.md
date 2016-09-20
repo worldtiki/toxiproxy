@@ -1,6 +1,6 @@
 # 2.1.0 (Unreleased)
 
-* Add bidirectional toxics #132
+* Add support for bidirectional toxics (for protocol-aware toxics) #132
 * Updated CLI for scriptability #133
 * Add `/populate` endpoint to server #111
 * Change error responses from `title` to `error`
