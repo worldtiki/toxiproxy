@@ -22,18 +22,21 @@ func (t *RedisToxic) PipeUpstream(stub *ToxicStub) {
 	reader := bufio.NewReader(stub.Reader)
 	for {
 		cmd, err := stream.ParseRESP(reader)
-		if stub.HandleReadError(err) {
-			if err == io.EOF {
-				close(state.Command)
-			}
+		if err == stream.ErrInterrupted {
 			return
-		} else if err == nil {
+		} else if err == io.EOF {
+			stub.Close()
+			close(state.Command)
+			return
+		} else if err != nil {
+			fmt.Println("RESP Parse error:", err)
+		} else {
 			state.Command <- cmd
 			str := cmd.StringArray()
 			fmt.Println("Command:", str)
 			if len(str) > 0 && str[0] == "SET" {
 				// Skip the backend server
-				stub.ReadWriter.Checkpoint()
+				stub.Reader.Checkpoint(0)
 			} else {
 				stub.Writer.Write(cmd.Raw())
 			}
@@ -48,7 +51,10 @@ func (t *RedisToxic) Pipe(stub *ToxicStub) {
 	reader := bufio.NewReader(stub.Reader)
 	for {
 		resp, err := stream.ParseRESP(reader)
-		if stub.HandleReadError(err) {
+		if err == stream.ErrInterrupted {
+			return
+		} else if err == io.EOF {
+			stub.Close()
 			return
 		} else {
 			select {
