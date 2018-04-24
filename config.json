@@ -1,0 +1,27 @@
+[
+  {
+    "name": "cos",
+    "listen": "0.0.0.0:9091",
+    "upstream": "example.com",
+    "toxics": [
+        {
+          "attributes":{
+            "Host":"example.com"
+          },
+          "name": "testhttp",
+          "type": "http",
+          "stream": "upstream",
+          "toxicity": 1
+        },
+        {
+          "attributes":{
+            "latency": 100
+          },
+          "name": "testlatency",
+          "type": "latency",
+          "stream": "downstream",
+          "toxicity": 1
+        }
+    ]
+  }
+]

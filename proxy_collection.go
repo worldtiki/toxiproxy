@@ -1,10 +1,13 @@
 package toxiproxy
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/Shopify/toxiproxy/toxics"
 )
 
 // ProxyCollection is a collection of proxies. It's the interface for anything
@@ -69,7 +72,8 @@ func (collection *ProxyCollection) AddOrReplace(proxy *Proxy, start bool) error 
 func (collection *ProxyCollection) PopulateJson(data io.Reader) ([]*Proxy, error) {
 	input := []struct {
 		Proxy
-		Enabled *bool `json:"enabled"` // Overrides Proxy field to make field nullable
+		Enabled    *bool                 `json:"enabled"` // Overrides Proxy field to make field nullable
+		ToxicsData []toxics.ToxicWrapper `json:"toxics"`
 	}{}
 
 	err := json.NewDecoder(data).Decode(&input)
@@ -102,6 +106,17 @@ func (collection *ProxyCollection) PopulateJson(data io.Reader) ([]*Proxy, error
 		err = collection.AddOrReplace(proxy, *p.Enabled)
 		if err != nil {
 			break
+		}
+
+		for _, toxicData := range p.ToxicsData {
+			b, err := json.Marshal(toxicData)
+
+			fmt.Println("%v", err)
+			fmt.Println("%v", string(b))
+
+			proxy.Toxics.AddToxicJson(bytes.NewReader(b))
+
+			fmt.Println("%v", toxicData.Attributes)
 		}
 
 		proxies = append(proxies, proxy)

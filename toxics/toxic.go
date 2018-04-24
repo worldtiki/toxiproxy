@@ -45,7 +45,9 @@ type StatefulToxic interface {
 }
 
 type ToxicWrapper struct {
-	Toxic      `json:"attributes"`
+	// Toxic `json:"attributes"`
+	Toxic      `json:"-"`
+	Attributes interface{}      `json:"attributes"`
 	Name       string           `json:"name"`
 	Type       string           `json:"type"`
 	Stream     string           `json:"stream"`

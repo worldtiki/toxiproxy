@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 
+	// "github.com/Shopify/toxiproxy/toxics"
+
 	"github.com/Shopify/toxiproxy/stream"
 	"github.com/sirupsen/logrus"
 	tomb "gopkg.in/tomb.v1"
