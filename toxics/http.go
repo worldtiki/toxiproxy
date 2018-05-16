@@ -15,8 +15,7 @@ type HttpToxic struct {
 }
 
 func (t *HttpToxic) ModifyRequest(resp *http.Request) {
-	resp.Header.Set("Host", t.Host)
-	resp.Header.Set("Host2", t.Host)
+	resp.Host = t.Host
 }
 
 func (t *HttpToxic) Pipe(stub *ToxicStub) {

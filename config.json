@@ -1,12 +1,12 @@
 [
   {
-    "name": "cos",
+    "name": "grs",
     "listen": "0.0.0.0:9091",
-    "upstream": "example.com",
+    "upstream": "guestreviewservice.staging.hcom:80",
     "toxics": [
         {
           "attributes":{
-            "Host":"example.com"
+            "Host":"guestreviewservice.staging.hcom"
           },
           "name": "testhttp",
           "type": "http",
